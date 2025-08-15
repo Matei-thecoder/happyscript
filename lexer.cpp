@@ -60,8 +60,8 @@ std::vector<Token> Lexer::tokenize() {
             else if (id == "int") tokens.push_back({ TokenType::IntType, id });
             else if (id == "float") tokens.push_back({ TokenType::FloatType, id });
             else if (id == "string") tokens.push_back({ TokenType::StringType, id });
-            else if (id == "if") tokens.push_back({ TokenType::IfType,id });
-            else if (id == "else") tokens.push_back({ TokenType::ElseType,id });
+            else if (id == "ana") tokens.push_back({ TokenType::IfType,id });
+            else if (id == "elsa") tokens.push_back({ TokenType::ElseType,id });
             else tokens.push_back({TokenType::Identifier, id});
         }
         
@@ -75,9 +75,24 @@ std::vector<Token> Lexer::tokenize() {
                 case '(': tokens.push_back({TokenType::LParen, std::string(1,get())}); break;
                 case ')': tokens.push_back({TokenType::RParen, std::string(1,get())}); break;
                 case ';': tokens.push_back({TokenType::Semicolon, std::string(1,get())}); break;
-                case '=': tokens.push_back({TokenType::Equal, std::string(1,get())}); break; 
-                case '==': tokens.push_back({ TokenType::DoubleEqual, std::string(1,get()) }); break;
-                case '!=': tokens.push_back({ TokenType::BangEqual, std::string(1,get()) }); break;
+                case '=':
+                    get(); // consume '='
+                    if (peek() == '=') {
+                        get(); // consume second '='
+                        tokens.push_back({TokenType::DoubleEqual, "=="});
+                    } else {
+                        tokens.push_back({TokenType::Equal, "="});
+                    }
+                    break;
+                case '!':
+                    get(); // consume '!'
+                    if (peek() == '=') {
+                        get(); // consume '='
+                        tokens.push_back({TokenType::BangEqual, "!="});
+                    } else {
+                        // handle single '!' if needed
+                    }
+                    break;
                 default: get(); break; // skip unknown
             }
         }
