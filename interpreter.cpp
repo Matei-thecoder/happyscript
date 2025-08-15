@@ -40,6 +40,20 @@ void Interpreter::execute(const Stmt* stmt) {
             throw std::runtime_error("Unknown variable type");
         }
     }
+    else if (auto ifStmt = dynamic_cast<const IfStmt*>(stmt)) {
+        auto cond = evaluate(ifStmt->condition.get());
+        bool condVal = false;
+        if (auto pInt = std::get_if<int>(&cond)) condVal = (*pInt != 0);
+        else if (auto pDouble = std::get_if<double>(&cond)) condVal = (*pDouble != 0.0);
+        else throw std::runtime_error("Condition must be numeric");
+        if (condVal) {
+            if (ifStmt->thenBranch)
+                execute(ifStmt->thenBranch.get());
+        } else {
+            if (ifStmt->elseBranch)
+                execute(ifStmt->elseBranch.get());
+        }
+    }
     else {
         throw std::runtime_error("Unknown statement type in execute");
     }
@@ -307,4 +321,4 @@ std::variant<int, double, std::string> Interpreter::evaluate(const Expr* expr) {
 
     throw std::runtime_error("Invalid expression");
 }
-*/
+    */
