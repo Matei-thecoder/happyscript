@@ -54,6 +54,22 @@ void Interpreter::execute(const Stmt* stmt) {
                 execute(ifStmt->elseBranch.get());
         }
     }
+    else if (auto whileStmt = dynamic_cast<const WhileStmt*>(stmt)) {
+        while (true) {
+            auto cond = evaluate(whileStmt->condition.get());
+            bool condVal = false;
+            if (auto pInt = std::get_if<int>(&cond)) condVal = (*pInt != 0);
+            else if (auto pDouble = std::get_if<double>(&cond)) condVal = (*pDouble != 0.0);
+            else throw std::runtime_error("Condition must be numeric");
+            if (!condVal) break;
+            execute(whileStmt->body.get());
+        }
+    }
+    else if (auto block = dynamic_cast<const BlockStmt*>(stmt)) {
+        for (const auto& s : block->statements) {
+            execute(s.get());
+        }
+    }
     else {
         throw std::runtime_error("Unknown statement type in execute");
     }
@@ -72,43 +88,103 @@ std::variant<int, double, std::string> Interpreter::evaluate(const Expr* expr) {
         return s->value;
     }
     else if (auto b = dynamic_cast<const BinaryExpr*>(expr)) {
-        auto left = evaluate(b->left.get());
-        auto right = evaluate(b->right.get());
-
-        // Helper lambdas
-        auto is_number = [](auto&& val) {
-            return std::holds_alternative<int>(val) || std::holds_alternative<double>(val);
-            };
-        auto to_double = [](auto&& val) -> double {
-            if (auto pInt = std::get_if<int>(&val)) return static_cast<double>(*pInt);
-            if (auto pDouble = std::get_if<double>(&val)) return *pDouble;
-            throw std::runtime_error("Value is not a number");
-            };
-        auto to_string = [](auto&& val) -> std::string {
-            if (auto pStr = std::get_if<std::string>(&val)) return *pStr;
-            throw std::runtime_error("Value is not a string");
-            };
+        auto leftVal = evaluate(b->left.get());
+        auto rightVal = evaluate(b->right.get());
 
         // String concatenation for '+'
-        if (b->op == "+" && (!is_number(left) || !is_number(right))) {
-            return to_string(left) + to_string(right);
+        if (b->op == "+") {
+            if (auto pStrL = std::get_if<std::string>(&leftVal)) {
+                if (auto pStrR = std::get_if<std::string>(&rightVal)) {
+                    return *pStrL + *pStrR;
+                }
+            }
         }
 
         // Numeric operations
-        if (!is_number(left) || !is_number(right)) {
-            throw std::runtime_error("Cannot mix numbers and strings in arithmetic operations");
+        if (b->op == "+") {
+            if (auto pIntL = std::get_if<int>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pIntL + *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pIntL + *pDoubleR;
+            }
+            if (auto pDoubleL = std::get_if<double>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pDoubleL + *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pDoubleL + *pDoubleR;
+            }
         }
-
-        double leftVal = to_double(left);
-        double rightVal = to_double(right);
-
-        if (b->op == "+") return leftVal + rightVal;
-        else if (b->op == "-") return leftVal - rightVal;
-        else if (b->op == "*") return leftVal * rightVal;
-        else if (b->op == "/") return leftVal / rightVal;
-        else if (b->op == "==") return leftVal == rightVal;
-        else if (b->op == "!=") return leftVal != rightVal;
-        else throw std::runtime_error("Unknown operator: " + b->op);
+        else if (b->op == "-") {
+            if (auto pIntL = std::get_if<int>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pIntL - *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pIntL - *pDoubleR;
+            }
+            if (auto pDoubleL = std::get_if<double>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pDoubleL - *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pDoubleL - *pDoubleR;
+            }
+        }
+        else if (b->op == "*") {
+            if (auto pIntL = std::get_if<int>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pIntL * *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pIntL * *pDoubleR;
+            }
+            if (auto pDoubleL = std::get_if<double>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pDoubleL * *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pDoubleL * *pDoubleR;
+            }
+        }
+        else if (b->op == "/") {
+            if (auto pIntL = std::get_if<int>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) {
+                    if (*pIntR == 0) throw std::runtime_error("Division by zero");
+                    return static_cast<double>(*pIntL) / *pIntR;
+                }
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) {
+                    if (*pDoubleR == 0.0) throw std::runtime_error("Division by zero");
+                    return *pIntL / *pDoubleR;
+                }
+            }
+            if (auto pDoubleL = std::get_if<double>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) {
+                    if (*pIntR == 0) throw std::runtime_error("Division by zero");
+                    return *pDoubleL / *pIntR;
+                }
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) {
+                    if (*pDoubleR == 0.0) throw std::runtime_error("Division by zero");
+                    return *pDoubleL / *pDoubleR;
+                }
+            }
+        }
+        else if (b->op == "%") {
+            int leftInt, rightInt;
+            if (auto pIntL = std::get_if<int>(&leftVal)) leftInt = *pIntL;
+            else if (auto pDoubleL = std::get_if<double>(&leftVal)) leftInt = static_cast<int>(*pDoubleL);
+            else throw std::runtime_error("Modulo operator requires integer operands");
+            if (auto pIntR = std::get_if<int>(&rightVal)) rightInt = *pIntR;
+            else if (auto pDoubleR = std::get_if<double>(&rightVal)) rightInt = static_cast<int>(*pDoubleR);
+            else throw std::runtime_error("Modulo operator requires integer operands");
+            if (rightInt == 0) throw std::runtime_error("Modulo by zero");
+            return leftInt % rightInt;
+        }
+        else if (b->op == "==") {
+            return leftVal == rightVal;
+        }
+        else if (b->op == "!=") {
+            return leftVal != rightVal;
+        }
+        else if (b->op == "<") {
+            return leftVal < rightVal;
+        }
+        else if (b->op == "<=") {
+            return leftVal <= rightVal;
+        }
+        else if (b->op == ">") {
+            return leftVal > rightVal;
+        }
+        else if (b->op == ">=") {
+            return leftVal >= rightVal;
+        }
+        else {
+            throw std::runtime_error("Unknown operator: " + b->op);
+        }
     }
 
     throw std::runtime_error("Invalid expression");

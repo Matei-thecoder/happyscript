@@ -5,7 +5,11 @@
 enum class TokenType {
     Number, Identifier, Plus, Minus, Star, Slash,
     LParen, RParen, Semicolon, Equal, IntType, FloatType, End, Print, StringType,  // Added StringType
-    StringLiteral, IfType, DoubleEqual, BangEqual, ElseType
+    StringLiteral, IfType, DoubleEqual, BangEqual, ElseType, Percent, WhileType, // <-- Add this line
+    LBrace, RBrace, Less,           // <
+    Greater,        // >
+    LessEqual,      // <=
+    GreaterEqual,   // >=
 };
 
 struct Token {

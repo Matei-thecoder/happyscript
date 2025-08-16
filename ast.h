@@ -67,4 +67,16 @@ struct StringExpr : Expr {
     std::string value;
     StringExpr(const std::string& value) : value(std::move(value)) {}
 };
+struct WhileStmt : Stmt {
+    std::unique_ptr<Expr> condition;
+    std::unique_ptr<Stmt> body;
+
+    WhileStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> body)
+        : condition(std::move(cond)), body(std::move(body)) {}
+};
+struct BlockStmt : Stmt {
+    std::vector<std::unique_ptr<Stmt>> statements;
+    BlockStmt(std::vector<std::unique_ptr<Stmt>> stmts)
+        : statements(std::move(stmts)) {}
+};
 

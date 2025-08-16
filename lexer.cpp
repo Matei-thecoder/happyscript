@@ -60,8 +60,9 @@ std::vector<Token> Lexer::tokenize() {
             else if (id == "int") tokens.push_back({ TokenType::IntType, id });
             else if (id == "float") tokens.push_back({ TokenType::FloatType, id });
             else if (id == "string") tokens.push_back({ TokenType::StringType, id });
-            else if (id == "ana") tokens.push_back({ TokenType::IfType,id });
-            else if (id == "elsa") tokens.push_back({ TokenType::ElseType,id });
+            else if (id == "ana") tokens.push_back({ TokenType::IfType, id });
+            else if (id == "elsa") tokens.push_back({ TokenType::ElseType, id });
+            else if (id == "fun") tokens.push_back({ TokenType::WhileType, id }); // <-- Add this line
             else tokens.push_back({TokenType::Identifier, id});
         }
         
@@ -72,6 +73,7 @@ std::vector<Token> Lexer::tokenize() {
                 case '-': tokens.push_back({TokenType::Minus, std::string(1,get())}); break;
                 case '*': tokens.push_back({TokenType::Star, std::string(1,get())}); break;
                 case '/': tokens.push_back({TokenType::Slash, std::string(1,get())}); break;
+                case '%': tokens.push_back({TokenType::Percent, std::string(1,get())}); break; // <-- Add this line
                 case '(': tokens.push_back({TokenType::LParen, std::string(1,get())}); break;
                 case ')': tokens.push_back({TokenType::RParen, std::string(1,get())}); break;
                 case ';': tokens.push_back({TokenType::Semicolon, std::string(1,get())}); break;
@@ -91,6 +93,26 @@ std::vector<Token> Lexer::tokenize() {
                         tokens.push_back({TokenType::BangEqual, "!="});
                     } else {
                         // handle single '!' if needed
+                    }
+                    break;
+                case '{': tokens.push_back({TokenType::LBrace, std::string(1,get())}); break;
+                case '}': tokens.push_back({TokenType::RBrace, std::string(1,get())}); break;
+                case '<':
+                    get(); // consume '<'
+                    if (peek() == '=') {
+                        get();
+                        tokens.push_back({TokenType::LessEqual, "<="});
+                    } else {
+                        tokens.push_back({TokenType::Less, "<"});
+                    }
+                    break;
+                case '>':
+                    get(); // consume '>'
+                    if (peek() == '=') {
+                        get();
+                        tokens.push_back({TokenType::GreaterEqual, ">="});
+                    } else {
+                        tokens.push_back({TokenType::Greater, ">"});
                     }
                     break;
                 default: get(); break; // skip unknown

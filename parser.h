@@ -28,6 +28,10 @@ private:
     std::unique_ptr<Stmt> parseStatement();
     std::unique_ptr<Expr> parseEquality();
     std::unique_ptr<Expr> parseAddition();
+    std::unique_ptr<WhileStmt> parseWhileStmt();
+    std::unique_ptr<Stmt> parseBlockStmt();
+    std::unique_ptr<Expr> parseComparison();
+    
     
     
 };

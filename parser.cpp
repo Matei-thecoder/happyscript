@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "ast.h" // <-- Make sure this is included
 #include <stdexcept>
 #include <iostream>
 
@@ -45,6 +46,9 @@ std::vector<std::unique_ptr<Stmt>> Parser::parseProgram() {
         }
         else if (currentToken().type == TokenType::IfType) {
             statements.push_back(parseIfStmt());
+        }
+        else if (currentToken().type == TokenType::WhileType) {
+            statements.push_back(parseWhileStmt());
         } else {
             throw std::runtime_error("Unexpected token: " + currentToken().text);
         }
@@ -108,16 +112,28 @@ std::unique_ptr<Expr> Parser::parseExpression() {
     return parseEquality();
 }
 
-std::unique_ptr<Expr> Parser::parseEquality() {
+std::unique_ptr<Expr> Parser::parseComparison() {
     auto left = parseAddition();
-
-    while (currentToken().type == TokenType::DoubleEqual || currentToken().type == TokenType::BangEqual) {
+    while (currentToken().type == TokenType::Less ||
+           currentToken().type == TokenType::LessEqual ||
+           currentToken().type == TokenType::Greater ||
+           currentToken().type == TokenType::GreaterEqual) {
         std::string opSymbol = currentToken().text;
         consume(currentToken().type);
         auto right = parseAddition();
         left = std::make_unique<BinaryExpr>(std::move(left), opSymbol, std::move(right));
     }
+    return left;
+}
 
+std::unique_ptr<Expr> Parser::parseEquality() {
+    auto left = parseComparison();
+    while (currentToken().type == TokenType::DoubleEqual || currentToken().type == TokenType::BangEqual) {
+        std::string opSymbol = currentToken().text;
+        consume(currentToken().type);
+        auto right = parseComparison();
+        left = std::make_unique<BinaryExpr>(std::move(left), opSymbol, std::move(right));
+    }
     return left;
 }
 
@@ -139,7 +155,7 @@ std::unique_ptr<Expr> Parser::parseAddition() {
 std::unique_ptr<Expr> Parser::parseTerm() {
     auto left = parseFactor();
 
-    while (currentToken().type == TokenType::Star || currentToken().type == TokenType::Slash) {
+    while (currentToken().type == TokenType::Star || currentToken().type == TokenType::Slash || currentToken().type == TokenType::Percent) {
         std::string op = currentToken().text;
         consume(currentToken().type);
         auto right = parseFactor();
@@ -152,9 +168,16 @@ std::unique_ptr<Expr> Parser::parseTerm() {
 // factor := NUMBER | identifier | '(' expression ')'
 std::unique_ptr<Expr> Parser::parseFactor() {
     if (currentToken().type == TokenType::Number) {
-        double val = std::stod(currentToken().text);
-        consume(TokenType::Number);
-        return std::make_unique<NumberExpr>(val);
+        const std::string& txt = currentToken().text;
+        if (txt.find('.') != std::string::npos) {
+            double val = std::stod(txt);
+            consume(TokenType::Number);
+            return std::make_unique<NumberExpr>(val);
+        } else {
+            int val = std::stoi(txt);
+            consume(TokenType::Number);
+            return std::make_unique<NumberExpr>(val);
+        }
     }
     else if (currentToken().type == TokenType::Identifier) {
         std::string name = currentToken().text;
@@ -170,14 +193,14 @@ std::unique_ptr<Expr> Parser::parseFactor() {
     else if (currentToken().type == TokenType::StringLiteral) {
         std::string val = currentToken().text;
         consume(TokenType::StringLiteral);
-        return std::make_unique<StringExpr>(val);  // You must have this class in your AST
+        return std::make_unique<StringExpr>(val);
     }
     else {
-        throw std::runtime_error("Unexpected token in factor: '" + currentToken().text + 
-    "' (type = " + std::to_string(static_cast<int>(currentToken().type)) + ")");
-
+        throw std::runtime_error("Unexpected token in factor: '" + currentToken().text +
+            "' (type = " + std::to_string(static_cast<int>(currentToken().type)) + ")");
     }
 }
+
 std::unique_ptr<IfStmt> Parser::parseIfStmt() {
     consume(TokenType::IfType);
     consume(TokenType::LParen);
@@ -203,6 +226,17 @@ std::unique_ptr<IfStmt> Parser::parseIfStmt() {
 
 
 }
+std::unique_ptr<WhileStmt> Parser::parseWhileStmt() {
+    consume(TokenType::WhileType);
+    consume(TokenType::LParen);
+    
+    auto condition = parseExpression();
+    consume(TokenType::RParen);
+    auto body = parseStatement();
+
+    return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+}
+
 std::unique_ptr<Stmt> Parser::parseStatement() {
     if (currentToken().type == TokenType::Print) {
         return parsePrintStmt();
@@ -210,11 +244,32 @@ std::unique_ptr<Stmt> Parser::parseStatement() {
     else if (currentToken().type == TokenType::IfType) {
         return parseIfStmt();
     }
-    else if (currentToken().type == TokenType::Identifier && tokens[pos + 1].type == TokenType::Equal) {
+    else if (currentToken().type == TokenType::WhileType) {
+        return parseWhileStmt();
+    }
+    else if (currentToken().type == TokenType::LBrace) {
+        return parseBlockStmt();
+    }
+    else if (currentToken().type == TokenType::IntType ||
+             currentToken().type == TokenType::FloatType ||
+             currentToken().type == TokenType::StringType) {
+        return parseDeclaration();
+    }
+    else if (currentToken().type == TokenType::Identifier &&
+             (pos + 1 < tokens.size()) && tokens[pos + 1].type == TokenType::Equal) { // <-- Fix here
         return parseAssignStmt();
     }
     else {
         throw std::runtime_error("Unexpected token in statement: " + currentToken().text);
     }
+}
+std::unique_ptr<Stmt> Parser::parseBlockStmt() {
+    consume(TokenType::LBrace);
+    std::vector<std::unique_ptr<Stmt>> stmts;
+    while (currentToken().type != TokenType::RBrace && currentToken().type != TokenType::End) {
+        stmts.push_back(parseStatement());
+    }
+    consume(TokenType::RBrace);
+    return std::make_unique<BlockStmt>(std::move(stmts));
 }
 
