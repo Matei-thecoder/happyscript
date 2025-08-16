@@ -21,7 +21,6 @@ void Interpreter::execute(const Stmt* stmt) {
     }
     else if (auto declStmt = dynamic_cast<const DeclStmt*>(stmt)) {
         auto val = evaluate(declStmt->value.get());
-
         if (declStmt->varType == TokenType::IntType) {
             if (auto pInt = std::get_if<int>(&val)) variables[declStmt->name] = *pInt;
             else if (auto pDouble = std::get_if<double>(&val)) variables[declStmt->name] = static_cast<int>(*pDouble);
@@ -90,6 +89,8 @@ std::variant<int, double, std::string> Interpreter::evaluate(const Expr* expr) {
     else if (auto b = dynamic_cast<const BinaryExpr*>(expr)) {
         auto leftVal = evaluate(b->left.get());
         auto rightVal = evaluate(b->right.get());
+
+       
 
         // String concatenation for '+'
         if (b->op == "+") {
@@ -171,16 +172,48 @@ std::variant<int, double, std::string> Interpreter::evaluate(const Expr* expr) {
             return leftVal != rightVal;
         }
         else if (b->op == "<") {
-            return leftVal < rightVal;
+            if (auto pIntL = std::get_if<int>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pIntL < *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pIntL < *pDoubleR;
+            }
+            if (auto pDoubleL = std::get_if<double>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pDoubleL < *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pDoubleL < *pDoubleR;
+            }
+            throw std::runtime_error("Operator '<' requires numeric operands");
         }
         else if (b->op == "<=") {
-            return leftVal <= rightVal;
+            if (auto pIntL = std::get_if<int>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pIntL <= *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pIntL <= *pDoubleR;
+            }
+            if (auto pDoubleL = std::get_if<double>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pDoubleL <= *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pDoubleL <= *pDoubleR;
+            }
+            throw std::runtime_error("Operator '<=' requires numeric operands");
         }
         else if (b->op == ">") {
-            return leftVal > rightVal;
+            if (auto pIntL = std::get_if<int>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pIntL > *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pIntL > *pDoubleR;
+            }
+            if (auto pDoubleL = std::get_if<double>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pDoubleL > *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pDoubleL > *pDoubleR;
+            }
+            throw std::runtime_error("Operator '>' requires numeric operands");
         }
         else if (b->op == ">=") {
-            return leftVal >= rightVal;
+            if (auto pIntL = std::get_if<int>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pIntL >= *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pIntL >= *pDoubleR;
+            }
+            if (auto pDoubleL = std::get_if<double>(&leftVal)) {
+                if (auto pIntR = std::get_if<int>(&rightVal)) return *pDoubleL >= *pIntR;
+                if (auto pDoubleR = std::get_if<double>(&rightVal)) return *pDoubleL >= *pDoubleR;
+            }
+            throw std::runtime_error("Operator '>=' requires numeric operands");
         }
         else {
             throw std::runtime_error("Unknown operator: " + b->op);

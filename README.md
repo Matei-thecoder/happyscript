@@ -7,16 +7,18 @@ Happyscript is a simple, educational programming language implemented in C++. It
 - Integer, floating-point, and string variables
 - Arithmetic operators: `+`, `-`, `*`, `/`, `%`
 - Comparison operators: `==`, `!=`, `<`, `>`, `<=`, `>=`
-- Control flow: `ana`, `elsa`, `fun`
+- Control flow: `ana`=`if`, `elsa`=`else`, `fun`=`while`
 - Print statements `smile`
 - Block statements with `{ ... }`
 
 ## Installation
 
+### Option 1: Manual Build
+
 1. **Clone the repository:**
    ```sh
-   git clone https://github.com/yourusername/Happyscript.git
-   cd Happyscript/happyscript
+   git clone https://github.com/Matei-thecoder/happyscript.git
+   cd happyscript
    ```
 
 2. **Build the interpreter:**
@@ -26,9 +28,27 @@ Happyscript is a simple, educational programming language implemented in C++. It
 
    > Make sure you have a C++17 compatible compiler installed.
 
+### Option 2: Using CMake
+
+1. **Clone the repository:**
+   ```sh
+   git clone https://github.com/Matei-thecoder/happyscript.git
+   cd happyscript
+   ```
+
+2. **Create a build directory and run CMake:**
+   ```sh
+   mkdir build
+   cd build
+   cmake ..
+   make
+   ```
+
+   This will generate the `happyscript` executable in the `build` directory.
+
 ## Usage
 
-1. **Write your Happyscript code in a file, e.g. `test.happy`:**
+1. **Write your Happyscript code in a file, in the same directory with the `happyscript` executable, e.g. `test.happy`:**
    ```c
    int x = 5;
    fun (x > 0) {
@@ -50,13 +70,20 @@ Happyscript is a simple, educational programming language implemented in C++. It
 int x = 10;
 fun (x >= 0) {
     ana (x % 2 == 0) {
-        smile("Even: " + x);
+        smile(x);
     } elsa {
-        smile("Odd: " + x);
+        smile(x);
     }
     x = x - 1;
 }
 ```
+
+## Language Rules
+
+- **Statement Termination:** Every statement must end with a semicolon (`;`).
+- **Supported Types:** The language supports `int`, `float`, and `string` types.
+- **String Concatenation:** Only two strings can be concatenated at a time using the `+` operator (e.g., `"hello" + "world"` is valid, but `"hello" + 1` is not).
+- **Type Safety:** Addition or concatenation between numbers and strings is not allowed; you cannot add an `int` or `float` to a `string` or vice versa.
 
 ## Contributing
 
